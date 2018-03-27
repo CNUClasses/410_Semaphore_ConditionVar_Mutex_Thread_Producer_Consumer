@@ -16,14 +16,13 @@ Semaphore::~Semaphore() {
 
 void Semaphore::wait() {
 	unique_lock<mutex> mlk(m);
-	count--;
-	if (count < 0)
+	while(count == 0)
 		cv.wait(mlk);
+	--count;
 }
 void Semaphore::signal() {
 	unique_lock<mutex> mlk(m);
-	count++;
-	if (count <= 0)
-		cv.notify_one();
+	++count;
+    cv.notify_one();	
 }
 
