@@ -15,50 +15,62 @@
 
 using namespace std;
 
+bool bDone = false;	//used by producer to indicate we are done
 int gCount 	= 0;
-Semaphore 	s_cnt(1);		//1=how many the producer can produce at a time before it waits
-Semaphore 	s_m(1);			//mutual exclusion
-Semaphore 	s_binary(0);	//binary semaphore, 0=blocked, 1 = go ahead,start off signaled, consumer will have to wait until producer produces
+
+Semaphore 	s_cnt(5);		//1=how many the producer can produce at a time before it waits
+mutex m;					//mutual exclusion
+Semaphore 	s_binary(0);	//binary semaphore, 0=blocked, 1 or more = go ahead,start off signaled, consumer will have to wait until producer produces
 
 void producer(int i) {
 	for (int j = 0; j < i; j++) {
 		s_cnt.wait();	//controls how many we produce(counts down1)
-		s_m.wait();		//lock
+		{
+			lock_guard<mutex> lck(m);		//lock
+			gCount++;
+			cout << "Producer gCount=" << gCount << endl;
+		}
 
-		//produce something
-		gCount++;
-		
-		cout << "Producer gCount=" << gCount << endl;
-
-		s_m.signal();		//unlock
 		s_binary.signal();	//tell consumer to consume
 	}
+
+	//tell consumer we are done
+	lock_guard<mutex> lck(m);
+	bDone = true;
+	cout << "Producer DONE!!" << endl;
 }
 
+void consumer(int id) {
+	while(true) {
+		s_binary.wait();	//wait for ready from producer
+		{
+			lock_guard<mutex> lck(m);
 
-void consumer(int i) {
+			//need to consume?
+			if(gCount >0){
+				gCount--;
+				cout << "               Consumer gCount=" << gCount << endl;
+			}
 
-	for (int j = 0; j < i; j++) {
-		s_binary.wait();	//wait for ready from producer		
-		s_m.wait();			//lock
+			s_cnt.signal();	//count up 1
 
-		//consume something
-		gCount--;
-		cout << "               Consumer gCount=" << gCount << endl;
+			if(bDone==true && gCount ==0)
+				break;	//here so we can properly signal those below
+		}
 
-		s_m.signal();	//unlock
-		s_cnt.signal();		//count up 1
 	}
+	lock_guard<mutex> lck(m);
+	cout << "  Consumer: " << id << " exiting" << endl;
 }
 int main()
 {
 	cout << "The initial value of gCount is " << gCount << endl; //
 
-	thread t_consumer(consumer, 100);
-	thread t_producer(producer, 100);
+	thread t_producer(producer, 10000);
+	thread t_consumer1(consumer,1);
 
 	t_producer.join();
-	t_consumer.join();
+	t_consumer1.join();
 	
 	cout <<endl<< "The final value of gCount is " << gCount << endl; //
 
