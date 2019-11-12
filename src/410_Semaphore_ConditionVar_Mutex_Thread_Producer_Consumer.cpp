@@ -18,7 +18,7 @@ using namespace std;
 bool bDone = false;	//used by producer to indicate we are done
 int gCount 	= 0;
 
-Semaphore 	s_cnt(5);		//1=how many the producer can produce at a time before it waits
+Semaphore 	s_cnt(3);		//1=how many the producer can produce at a time before it waits
 mutex m;					//mutual exclusion
 Semaphore 	s_binary(0);	//binary semaphore, 0=blocked, 1 or more = go ahead,start off signaled, consumer will have to wait until producer produces
 
