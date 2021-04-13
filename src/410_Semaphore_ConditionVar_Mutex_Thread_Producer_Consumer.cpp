@@ -70,13 +70,9 @@ int main()
 
 	thread t_producer(producer, 10000);
 	thread t_consumer1(consumer,1);
-	thread t_consumer2(consumer,2);
-	thread t_consumer3(consumer,3);
 
 	t_producer.join();
 	t_consumer1.join();
-	t_consumer2.join();
-	t_consumer3.join();
 	
 	cout <<endl<< "The final value of gCount is " << gCount << endl; //
 
