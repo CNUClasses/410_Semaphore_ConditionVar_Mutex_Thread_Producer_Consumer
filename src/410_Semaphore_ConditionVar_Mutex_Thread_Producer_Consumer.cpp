@@ -24,14 +24,13 @@ Semaphore 	s_binary(0);	//binary semaphore, 0=blocked, 1 or more = go ahead,star
 
 void producer(int i) {
 	for (int j = 0; j < i; j++) {
-		s_cnt.wait();	//controls how many we produce(counts down1)
+		s_cnt.wait();
 		{
-			lock_guard<mutex> lck(m);		//lock
+			lock_guard<mutex> lck(m);
 			gCount++;
 			cout << "Producer gCount=" << gCount << endl;
 		}
-
-		s_binary.signal();	//tell consumer to consume
+		s_binary.signal();
 	}
 
 	//tell consumer we are done
@@ -42,24 +41,27 @@ void producer(int i) {
 
 void consumer(int id) {
 	while(true) {
-		s_binary.wait();	//wait for ready from producer
 		{
-			lock_guard<mutex> lck(m);
-
+			s_binary.wait();
 			//need to consume?
-			if(gCount >0){
-				gCount--;
-				cout << "               Consumer gCount=" << gCount << endl;
+			{
+				lock_guard<mutex> lck(m);
+				if(gCount >0){
+					gCount--;
+					cout << "               Consumer " <<id<<"; gCount=" << gCount << endl;
+					s_cnt.signal();
+
+				}
 			}
 
-			s_cnt.signal();	//count up 1
-
-			if(bDone==true && gCount ==0)
-				break;	//here so we can properly signal those below
+			{
+				lock_guard<mutex> lck(m);
+				if(bDone==true && gCount ==0)
+					break;	//here so we can properly signal those below
+			}
 		}
 
 	}
-	lock_guard<mutex> lck(m);
 	cout << "  Consumer: " << id << " exiting" << endl;
 }
 int main()
@@ -68,9 +70,13 @@ int main()
 
 	thread t_producer(producer, 10000);
 	thread t_consumer1(consumer,1);
+	thread t_consumer2(consumer,2);
+	thread t_consumer3(consumer,3);
 
 	t_producer.join();
 	t_consumer1.join();
+	t_consumer2.join();
+	t_consumer3.join();
 	
 	cout <<endl<< "The final value of gCount is " << gCount << endl; //
 

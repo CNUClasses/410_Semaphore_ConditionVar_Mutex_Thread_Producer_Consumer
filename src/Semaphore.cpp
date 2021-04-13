@@ -16,7 +16,7 @@ Semaphore::~Semaphore() {
 
 void Semaphore::wait() {
 	unique_lock<mutex> mlk(m);
-	while(count <= 0)
+	while(count == 0)
 		cv.wait(mlk);
 	--count;
 }
